@@ -270,6 +270,7 @@ function saveValue(sender, sensor, type, payload) {
 	}
 
         sendToLibrato(gauge, source, payload);
+        sendKibana   (gauge, source, payload);
 }
 
 function saveBatteryLevel(sender, payload) {
@@ -475,6 +476,42 @@ var options = {
     'Content-Type': 'application/json'
   }
 };
+var kibanaOptions = {
+  hostname: 'search-sensors-c6myy6rha6siynoaynpy3rgqcu.us-east-1.es.amazonaws.com',
+  port: 443,
+  path: '/gauge/sensors',
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  }
+};
+
+function sendKibana(type, source, value) {
+	var req = https.request(kibanaOptions, function(res) {
+	  console.log('STATUS: ' + res.statusCode);
+	  res.setEncoding('utf8');
+	  res.on('data', function (chunk) {
+	    console.log('BODY: ' + chunk);
+	  });
+	  res.on('end', function() {
+	    console.log('No more data in response.')
+	  })
+	});
+
+	req.on('error', function(e) {
+	  console.log('problem with request: ' + e.message);
+	});
+        
+        var json = {"sensorID":source, "type":type, "value":Number(value), "timestamp": new Date().toISOString()}
+
+	// write data to request body
+	console.log(JSON.stringify(json));
+	req.write(JSON.stringify(json));
+
+	req.end();
+
+
+}
 
 function sendToLibrato(type, source, value) {
 	var req = https.request(options, function(res) {
