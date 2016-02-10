@@ -209,11 +209,13 @@ function saveValue(sender, sensor, type, payload) {
         } 
 
         if (sender === 101 && sensor == 0) {
-          source = "home.bath.tub.top";
+          source = "home.bath.tub.tube";
         } else if (sender === 101 && sensor == 1) {
-          source = "home.bath.tub.middle";
-        } else if (sender === 101 && sensor == 2) {
           source = "home.bath.tub.bottom";
+        } else if (sender === 101 && sensor == 2) {
+          source = "home.bath.tub.middle";
+        } else if (sender === 101 && sensor == 3) {
+          source = "home.bath.tub.top";
         } else if (sender === 104 && sensor == 0) {
           source = "home.outside.back";
         } else if (sender === 103 && sensor == 0) {
@@ -271,6 +273,7 @@ function saveValue(sender, sensor, type, payload) {
 
         sendToLibrato(gauge, source, payload);
         sendKibana   (gauge, source, payload);
+        //sendDockerKibana   (gauge, source, payload);
 }
 
 function saveBatteryLevel(sender, payload) {
@@ -476,6 +479,17 @@ var options = {
     'Content-Type': 'application/json'
   }
 };
+var dockerKibanaOptions = {
+  hostname: 'pure.ipc-media.net',
+  port: 4444,
+  path: '/gauge/sensors',
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Basic a2liYW5hOmNvbm5lY3RtZQ=='
+  },
+  rejectUnauthorized: false
+};
 var kibanaOptions = {
   hostname: 'search-sensors-c6myy6rha6siynoaynpy3rgqcu.us-east-1.es.amazonaws.com',
   port: 443,
@@ -485,6 +499,32 @@ var kibanaOptions = {
     'Content-Type': 'application/json'
   }
 };
+function sendDockerKibana(type, source, value) {
+	var req = https.request(dockerKibanaOptions, function(res) {
+	  console.log('STATUS: ' + res.statusCode);
+	  res.setEncoding('utf8');
+	  res.on('data', function (chunk) {
+	    console.log('BODY: ' + chunk);
+	  });
+	  res.on('end', function() {
+	    console.log('No more data in response.')
+	  })
+	});
+
+	req.on('error', function(e) {
+	  console.log('problem with request: ' + e.message);
+	});
+        
+        var json = {"sensorID":source, "type":type, "value":Number(value), "timestamp": new Date().toISOString()}
+
+	// write data to request body
+	console.log(JSON.stringify(json));
+	req.write(JSON.stringify(json));
+
+	req.end();
+
+
+}
 
 function sendKibana(type, source, value) {
 	var req = https.request(kibanaOptions, function(res) {
